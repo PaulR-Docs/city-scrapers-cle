@@ -33,6 +33,28 @@ from dateutil.relativedelta import relativedelta
         return return_list
 
 def _parse_meeting(self, response):
+"""Parse Meeting from detail page"""
+  title = self._parse_title(response)
+        meeting = Meeting(
+            title=title,
+            description="",
+            classification=self._parse_classification(title),
+            start=self._parse_start(response),
+            end=self._parse_end(response),
+            all_day=False,
+            time_notes="",
+            location=self._parse_location(response),
+            links=self._parse_links(response),
+            source=response.url,
+    )
+
+        meeting["status"] = self._get_status(
+            meeting, text=response.css(".panel-flexible-inside")[0].extract()
+        )
+        meeting["id"] = self._get_id(meeting)
+
+        yield meeting
+
 
 #            meeting = Meeting(
 #                title=self._parse_title(item),
@@ -54,11 +76,39 @@ def _parse_meeting(self, response):
 
     def _parse_title(self, item):
         """Parse or generate meeting title."""
-        return ""
+        title_str = response.css("title_column event_title").extract_first().strip()
+        if title_str == "Mental Health Response Advisory Committee (MHRAC) Meeting":
+            return "Mental Health Response Advisory Committee Meeting (Full Committee)"
+        if title_str == "MHRAC Diversion Subcommittee Meeting":
+            return "MHRAC Diversion Subcommittee Meeting"
+        if title_str == "MHRAC Community Engagement Subcommittee Meeting":
+            return "MHRAC Community Engagement Subcommittee Meeting"
+        if  title_str == "MHRAC QI Subcommittee Meeting":
+	    return "MHRAC Quality Improvement Subcommittee Meeting"
+        if title_str == "MHRAC Training Subcommittee Meeting":
+            return "MHRAC Training Subcommittee Meeting"
+        return re.sub(r" Meeting(s)?$", "", title_str)
 
     def _parse_description(self, item):
         """Parse or generate meeting description."""
-        return ""
+	title_str = response.css("title_column event_title").extract_first().strip()
+	if title_str == "Mental Health Response Advisory Committee (MHRAC) Meeting":
+            return "About the MHRAC:
+The Settlement Agreement between the City of Cleveland and the Department of Justice required that a Mental Health Response Advisory Committee (MHRAC) be developed by the City and the Cleveland Division of Police (CDP). The Committee is charged with: Fostering relationships and support between the police, community and mental health providers;
+Identifying problems and developing solutions to improve crisis outcomes;
+Providing guidance to improving, expanding and sustaining the CPD Crisis Intervention Program;
+Conducting a yearly analysis of incidents to determine if the CPD has enough specialized CIT officers, if they are deployed effectively and responding appropriately and recommending changes to policies and procedures regarding training. "
+        if title_str == "MHRAC Diversion Subcommittee Meeting":
+            return "Diversion Subcommittee: Works with the Cleveland Division of Police to offer alternatives to the justice system for people with mental illness and addictions, such as diversion to hospitalization or treatment. "
+        if title_str == "MHRAC Community Engagement Subcommittee Meeting":
+            return "Community Involvement/Engagement Subcommittee: Fosters relationships between the Cleveland Police Department and the community by engaging the mental health and drug addiction community, police and the general public in meaningful dialogue that builds knowledge, sensitivity and understanding in order to inform and improve interactions and relationships through development of a plan to connect the general public, the police, and mental health and addiction specialists in each police district to build trust."
+        if  title_str == "MHRAC QI Subcommittee Meeting":
+            return "Quality Improvement Subcommittee: Reviews and discusses the data submitted from the CIT stat sheets and makes recommendations on ways to improve the quality and quantity of data collected in the reports.
+"
+        if title_str == "MHRAC Training Subcommittee Meeting":
+            return "Training Subcommittee: Reviews and makes recommendations for 8-hour Mental Health/AoD training for all Cleveland Police officers and personnel, as well as the 40-hour CIT training for officers who volunteer for the training."
+        return re.sub(r" Meeting Description?$", "", title_str)
+
 
     def _parse_classification(self, item):
         """Parse or generate classification from allowed options."""
